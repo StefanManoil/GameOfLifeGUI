@@ -129,6 +129,8 @@ public:
      */
     virtual bool getSnapToTicks() const;
 
+    virtual const GSlider* getSlider() const;
+
     /* @inherit */
     virtual std::string getType() const Q_DECL_OVERRIDE;
 

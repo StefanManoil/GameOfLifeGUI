@@ -43,6 +43,7 @@
 class GContainer;
 class GDiffGui;
 class GWindow;
+class GSlider;
 class _Internal_QWidget;
 
 /**
@@ -268,6 +269,8 @@ public:
     virtual std::string getType() const = 0;
 
     virtual GWindow* getWindow() const;
+
+    virtual const GSlider* getSlider() const;
 
     /**
      * Returns a direct pointer to the internal Qt widget being wrapped by this
