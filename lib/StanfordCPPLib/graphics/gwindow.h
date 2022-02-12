@@ -29,6 +29,7 @@
 #define _gwindow_h
 
 #include <string>
+#include <unordered_map>
 #include <QWindow>
 #include <QCloseEvent>
 #include <QEvent>
@@ -190,6 +191,12 @@ public:
      * @throw ErrorException if the interactor is null
      */
     virtual void add(GInteractor* interactor);
+
+    /**
+     * Adds the given interactor to the East region of the window.
+     * @throw ErrorException if the interactor is null
+     */
+    virtual void addButton(GInteractor* interactor);
 
     /**
      * Adds the given interactor to the center region of the window
@@ -562,6 +569,8 @@ public:
 
     virtual GWindow* getWindow();
 
+    virtual _Internal_QMainWindow* getInnerWindow();
+
     /**
      * Returns the x location of the left edge of the window on screen.
      */
@@ -761,7 +770,7 @@ public:
      * Removes the timer listener from this window so that it will no longer
      * call it when events occur.
      */
-    virtual void removeTimerListener();
+    virtual void removeTimerListener(double ms);
 
     /**
      * Removes the window listener from this window so that it will no longer
@@ -1207,12 +1216,13 @@ public:
 
     virtual void changeEvent(QEvent* event) Q_DECL_OVERRIDE;
     virtual void closeEvent(QCloseEvent* event) Q_DECL_OVERRIDE;
+    virtual std::unordered_map<double, int>& getTimerDelayMap();
     virtual void keyPressEvent(QKeyEvent* event) Q_DECL_OVERRIDE;
     virtual void resizeEvent(QResizeEvent* event) Q_DECL_OVERRIDE;
     virtual void timerEvent(QTimerEvent* event) Q_DECL_OVERRIDE;
     virtual bool timerExists(int id = -1);
     virtual int timerStart(double ms);
-    virtual void timerStop(int id = -1);
+    virtual void timerStop(double ms);
 
 public slots:
     void handleMenuAction(const std::string& menu, const std::string& item);
@@ -1220,6 +1230,7 @@ public slots:
 private:
     GWindow* _gwindow;
     Set<int> _timerIDs;
+    std::unordered_map<double, int> timerDelayToId;
 
     void processTimerEvent();
 

@@ -9,6 +9,7 @@
  * - renamed to gslider.h to replace Java version
  * @version 2018/06/29
  * - initial version
+ * Multiple additions/changes made by Stefan Manoil
  */
 
 #include "private/init.h"   // ensure that Stanford C++ lib is initialized
@@ -26,12 +27,14 @@
 #include <QSize>
 #include <QSlider>
 #include <QWidget>
+#include "gwindow.h"
 
 #define INTERNAL_INCLUDE 1
 #include "ginteractor.h"
 #undef INTERNAL_INCLUDE
 
 class _Internal_QSlider;
+class GWindow;
 
 /**
  * This interactor subclass represents an onscreen slider.
@@ -142,6 +145,10 @@ public:
     /* @inherit */
     virtual QWidget* getWidget() const Q_DECL_OVERRIDE;
 
+    virtual GWindow* getWindow() const;
+
+    virtual void setWindow(GWindow* window);
+
     /**
      * Removes the action listener from this slider so that it will no longer
      * call it when events occur.
@@ -228,6 +235,7 @@ private:
     Q_DISABLE_COPY(GSlider)
 
     _Internal_QSlider* _iqslider;
+    GWindow* window;
 
     friend class _Internal_QSlider;
 };

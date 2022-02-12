@@ -33,10 +33,12 @@
 #include <QToolButton>
 #include <QWidget>
 
+#include "gwindow.h"
 #define INTERNAL_INCLUDE 1
 #include "ginteractor.h"
 #undef INTERNAL_INCLUDE
 
+class GWindow;
 class _Internal_QPushButton;
 
 /**
@@ -83,6 +85,11 @@ public:
 
     /* @inherit */
     virtual QWidget* getWidget() const Q_DECL_OVERRIDE;
+
+    /* @inherit */
+    virtual GWindow* getWindow() const Q_DECL_OVERRIDE;
+
+    virtual void setWindow(GWindow* window);
 
     /**
      * Removes the action listener from this button so that it will no longer
@@ -152,6 +159,7 @@ public:
 private:
     Q_DISABLE_COPY(GButton)
     _Internal_QPushButton* _iqpushbutton;
+    GWindow* window;
 
     friend class _Internal_QPushButton;
 };
