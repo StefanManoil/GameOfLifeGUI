@@ -11,7 +11,8 @@
 #include "gobjects.h" // for GOval
 #include "vector.h"  // for Vector
 #include "grid.h"    // for Grid
-#include "simulationgrid.h"
+#include "simulationgrid.h" // for SimulationGrid
+#include "gridstack.h" // for GridStack
 
 class GWindow;
 
@@ -82,6 +83,8 @@ public:
 
     void advanceBoard();
 
+    void reverseBoard(const SimulationGrid& grid);
+
     void setMode(const std::string&  mode);
 
     std::string& getMode();
@@ -90,14 +93,17 @@ public:
  /**
   * Provides access to the GWindow field as event listeners will be attached to it
   */
-    GWindow* getWindow();
+    GWindow* getWindow() const;
 
     SimulationGrid& getGrid();
+
+    GridStack<SimulationGrid*>& getUndoButtonStack();
 
     
 private:
     GWindow* window;
     SimulationGrid gameGrid;
+    GridStack<SimulationGrid*> undoButtonStack;
     int numRows;
     int numColumns;
     double upperLeftX;

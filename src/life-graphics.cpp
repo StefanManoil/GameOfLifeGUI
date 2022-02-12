@@ -205,6 +205,11 @@ void LifeDisplay::advanceBoard() {
     drawBoard();
 }
 
+void LifeDisplay::reverseBoard(const SimulationGrid& grid) {
+    gameGrid = grid;
+    drawBoard();
+}
+
 void LifeDisplay::setMode(const std::string& mode) {
     this->mode = mode;
     if (mode == "1") {
@@ -226,10 +231,14 @@ double LifeDisplay::getTimerDelay() const {
     return timerDelay;
 }
 
-GWindow* LifeDisplay::getWindow() {
+GWindow* LifeDisplay::getWindow() const {
     return window;
 }
 
 SimulationGrid& LifeDisplay::getGrid() {
     return gameGrid;
+}
+
+GridStack<SimulationGrid*>& LifeDisplay::getUndoButtonStack() {
+    return undoButtonStack;
 }
