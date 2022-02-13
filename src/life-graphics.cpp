@@ -8,7 +8,7 @@
  * you're attempting some sort of fancy extension.
  * 
  * This is based on a previous implementation by Julie Zelenski.
- * Multiple changes made by Stefan Manoil
+ * Multiple enhancements/changes made by Stefan Manoil
  */
 
 #include <sstream>  // for ostringstream
@@ -213,13 +213,13 @@ void LifeDisplay::reverseBoard(const SimulationGrid& grid) {
 void LifeDisplay::setMode(const std::string& mode) {
     this->mode = mode;
     if (mode == "1") {
-        timerDelay = 3000;
+        timerDelay = timerDelayMode1;
     }
     else if (mode == "2") {
-        timerDelay = 1500;
+        timerDelay = timerDelayMode2;
     }
     else if (mode == "3") {
-        timerDelay = 800;
+        timerDelay = timerDelayMode3;
     }
 }
 

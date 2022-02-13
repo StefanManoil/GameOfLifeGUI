@@ -15,5 +15,8 @@
  * for display purposes.
  */
 const int kMaxAge = 12;
+const double timerDelayMode1 = 3000;
+const double timerDelayMode2 = 1500;
+const double timerDelayMode3 = 800;
 const std::pair<int, int> directions[] = { {-1, -1}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1} };
 
