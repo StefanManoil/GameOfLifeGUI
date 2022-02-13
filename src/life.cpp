@@ -2,6 +2,7 @@
  * File: life.cpp
  * --------------
  * Implements the Game of Life.
+ * @author Stefan Manoil
  */
 
 #include <iostream> // for cout
@@ -12,13 +13,13 @@
 
 #include "console.h" // required of all files that contain the main function
 #include "simpio.h" // for getLine
-#include "gevents.h" // for mouse event detection
-#include "gtimer.h" // for GTimer
+#include "gevents.h" // for event detection
+#include "gbutton.h" // for GButton
+#include "gslider.h" // for GSlider
 #include "strlib.h"
 
 #include "life-constants.h"  // for kMaxAge
 #include "life-graphics.h"   // for class LifeDisplay
-#include "simulationgrid.h"
 
 /**
  * Function: setupFromFile
@@ -90,7 +91,7 @@ void setupGrid(const std::string& option, SimulationGrid& startGrid) {
  * -----------------
  * Introduces the user to the Game of Life and its rules.
  */
-static void welcome(std::string& mode, SimulationGrid& startGrid) {
+static void welcome(SimulationGrid& startGrid) {
     std::cout << "Welcome to the game of Life, a simulation of the lifecycle of a bacteria colony." << std::endl;
     std::cout << "Cells live and die by the following rules:" << std::endl << std::endl;
     std::cout << "\tA cell with 1 or fewer neighbors dies of loneliness" << std::endl;
@@ -99,68 +100,126 @@ static void welcome(std::string& mode, SimulationGrid& startGrid) {
     std::cout << "\tLocations with 4 or more neighbors die of overcrowding" << std::endl << std::endl;
     std::cout << "In the animation, new cells are dark and fade to gray as they age." << std::endl << std::endl;
     std::cout << "Type f to choose a starting configuration from a file, or type r for a random one. Then hit enter." << std::endl << std::endl;
-    std::cout << "Type m for manual mode, numbers for automatic mode: 1 for low speed, 2 for medium, 3 for high. Then hit enter" << std::endl << std::endl;
-    // getLine("Hit [enter] to continue....   ");
-    std::string startingOption, startingMode;
+    std::string startingOption;
     std::getline(std::cin, startingOption);
     while (startingOption != "f" && startingOption != "r") {
         std::cout << "Type f to choose a starting configuration from a file, or type r for a random one. Then hit enter." << std::endl;
         std::getline(std::cin, startingOption);
     }
-    std::getline(std::cin, startingMode);
-    while (startingMode != "m" && startingMode != "1" && startingMode != "2" && startingMode != "3") {
-        std::cout << "Type m for manual mode, numbers for automatic mode: 1 for low speed, 2 for medium, 3 for high. Then hit enter" << std::endl;
-        std::getline(std::cin, startingMode);
-    }
-    mode = startingMode;
     setupGrid(startingOption, startGrid);
-}
-
-GEventListener timerRingListener;
-GEventListener keyPressedListener;
-
-// this will be what std::function<>
-void mouseClickExitWindow(GMouseEvent e) {
-    if (e.isLeftClick()) {
-        if (e.getInteractor()->getType() == "GCanvas") {
-            e.getInteractor()->getWindow()->close();
-        }
-    }
 }
 
 void timerRing(GTimerEvent e) {
     std::cout << "Timer ringing" << std::endl;
     std::cout << e.getSource()->getType() << std::endl;
-    e.getSource()->getWindow()->getDisplay()->advanceBoard();
+    LifeDisplay* display = e.getSource()->getWindow()->getDisplay();
+    SimulationGrid* currentGrid = new SimulationGrid(display->getGrid());
+    display->getUndoButtonStack().pushGrid(currentGrid);
+    display->advanceBoard();
 }
 
-void keyPressed(GKeyEvent e) {
-    std::cout << "Key Pressed" << std::endl;
+void advanceGenerationBtnPressed(GActionEvent e) {
     std::cout << e.getInteractor()->getType() << std::endl;
-    std::cout << e.getKeyChar() << std::endl;
-    if (e.getKeyChar() == 'm') {
-        e.getInteractor()->getWindow()->removeTimerListener();
+    LifeDisplay* display = e.getInteractor()->getWindow()->getDisplay();
+    SimulationGrid* currentGrid = new SimulationGrid(display->getGrid());
+    display->getUndoButtonStack().pushGrid(currentGrid);
+    display->advanceBoard();
+    for (GInteractor* interactor: e.getInteractor()->getContainer()->getInteractors()) {
+        if (interactor->getName() == "<=") {
+            interactor->setEnabled(true);
+        }
     }
-    else if (e.getKeyChar() == '1') {
-        e.getInteractor()->getWindow()->removeTimerListener();
-        std::string mode = "1";
-        e.getInteractor()->getWindow()->getDisplay()->setMode(mode);
-        e.getInteractor()->getWindow()->setTimerListener(e.getInteractor()->getWindow()->getDisplay()->getTimerDelay(), timerRingListener);
+}
+
+void reverseGenerationBtnPressed(GActionEvent e) {
+    std::cout << e.getInteractor()->getType() << std::endl;
+    LifeDisplay* display = e.getInteractor()->getWindow()->getDisplay();
+    SimulationGrid* previousGrid = display->getUndoButtonStack().popGrid();
+    if (display->getUndoButtonStack().getStackSize() == 0) e.getInteractor()->setEnabled(false);
+    display->reverseBoard(*previousGrid);
+    delete previousGrid;
+}
+
+void sliderSettingChanged(GActionEvent e) {
+    std::cout << e.getInteractor()->getType() << std::endl;
+    LifeDisplay* display = e.getInteractor()->getWindow()->getDisplay();
+    GWindow* window = e.getInteractor()->getWindow();
+    const GSlider* slider = e.getInteractor()->getSlider();
+    if (display->getMode() != "m") {
+        window->removeTimerListener(display->getTimerDelay());
     }
-    else if (e.getKeyChar() == '2') {
-        e.getInteractor()->getWindow()->removeTimerListener();
-        std::string mode = "2";
-        e.getInteractor()->getWindow()->getDisplay()->setMode(mode);
-        e.getInteractor()->getWindow()->setTimerListener(e.getInteractor()->getWindow()->getDisplay()->getTimerDelay(), timerRingListener);
+    int sliderValue = slider->getValue();
+    std::string mode;
+    if (sliderValue > 1) {
+        //GEventListener timerRingListener = timerRing;
+        if (sliderValue == 2) mode = "1";
+        else if (sliderValue == 3) mode = "2";
+        else if (sliderValue == 4) mode = "3";
+        display->setMode(mode);
+        window->setTimerListener(display->getTimerDelay(), timerRing);
     }
-    else if (e.getKeyChar() == '3') {
-        e.getInteractor()->getWindow()->removeTimerListener();
-        std::string mode = "3";
-        e.getInteractor()->getWindow()->getDisplay()->setMode(mode);
-        e.getInteractor()->getWindow()->setTimerListener(e.getInteractor()->getWindow()->getDisplay()->getTimerDelay(), timerRingListener);
+    else {
+        mode = "m";
+        display->setMode(mode);
     }
-    else if (e.getInteractor()->getWindow()->getDisplay()->getMode() == "m" && (int)e.getKeyChar() == 32) {
-        e.getInteractor()->getWindow()->getDisplay()->advanceBoard();
+}
+
+void manualOrAutoBtnPressed(GActionEvent e) {
+    if (e.getInteractor()->getActionCommand() == ">") {
+        std::string pauseText = "||";
+        e.getInteractor()->setActionCommand(pauseText);
+        GButton* button = e.getInteractor()->getButton();
+        button->setText(pauseText);
+        for (GInteractor* interactor: e.getInteractor()->getContainer()->getInteractors()) {
+            if (interactor->getName() == "=>" || interactor->getName() == "<=") {
+                interactor->setEnabled(false);
+            }
+            else if (interactor->getName() == "diffSpeeds") {
+                interactor->setEnabled(true);
+                const GSlider* slider = interactor->getSlider();
+                int sliderValue = slider->getValue();
+                if (sliderValue > 1) {
+                    //GEventListener timerRingListener = timerRing;
+                    std::string mode;
+                    if (sliderValue == 2) mode = "1";
+                    else if (sliderValue == 3) mode = "2";
+                    else if (sliderValue == 4) mode = "3";
+                    LifeDisplay* display = e.getInteractor()->getWindow()->getDisplay();
+                    GWindow* window = e.getInteractor()->getWindow();
+                    display->setMode(mode);
+                    window->setTimerListener(display->getTimerDelay(), timerRing);
+                }
+            }
+        }
+    }
+    else if (e.getInteractor()->getActionCommand() == "||") {
+        LifeDisplay* display = e.getInteractor()->getWindow()->getDisplay();
+        GWindow* window = e.getInteractor()->getWindow();
+        std::string playText = ">";
+        e.getInteractor()->setActionCommand(playText);
+        GButton* button = e.getInteractor()->getButton();
+        button->setText(playText);
+        for (GInteractor* interactor: e.getInteractor()->getContainer()->getInteractors()) {
+            if (interactor->getName() == "=>") {
+                interactor->setEnabled(true);
+            }
+            else if (interactor->getName() == "<=") {
+                if (display->getUndoButtonStack().getStackSize() > 0) {
+                    interactor->setEnabled(true);
+                }
+                else {
+                    interactor->setEnabled(false);
+                }
+            }
+            else if (interactor->getName() == "diffSpeeds") {
+                interactor->setEnabled(false);
+            }
+        }
+        if (display->getMode() != "m") {
+            window->removeTimerListener(display->getTimerDelay());
+        }
+        std::string mode = "m";
+        display->setMode(mode);
     }
 }
 
@@ -172,24 +231,61 @@ void keyPressed(GKeyEvent e) {
 int main() {
     LifeDisplay display;
     display.setTitle("Game of Life");
-    welcome(display.getMode(), display.getGrid());
-    display.setMode(display.getMode());
+    welcome(display.getGrid());
+
+    std::string advanceGenerationText = "=>";
+    GButton advanceGenerationBtn(advanceGenerationText);
+    advanceGenerationBtn.setHeight(20.0);
+    advanceGenerationBtn.setWidth(50.0);
+    advanceGenerationBtn.setWindow(display.getWindow());
+    GInteractor* interactorAdvanceGenerationBtn = &advanceGenerationBtn;
+    interactorAdvanceGenerationBtn->setName(advanceGenerationText);
+    std::string reverseGenerationText = "<=";
+    GButton reverseGenerationBtn(reverseGenerationText);
+    reverseGenerationBtn.setHeight(20.0);
+    reverseGenerationBtn.setWidth(50.0);
+    reverseGenerationBtn.setWindow(display.getWindow());
+    GInteractor* interactorReverseGenerationBtn = &reverseGenerationBtn;
+    interactorReverseGenerationBtn->setName(reverseGenerationText);
+    std::string manualOrAutoModeString = ">";
+    GButton manualOrAutoModeBtn(manualOrAutoModeString);
+    manualOrAutoModeBtn.setHeight(20.0);
+    manualOrAutoModeBtn.setWidth(50.0);
+    manualOrAutoModeBtn.setWindow(display.getWindow());
+    GInteractor* interactorManualOrAutoModeBtn = &manualOrAutoModeBtn;
+    interactorManualOrAutoModeBtn->setName(manualOrAutoModeString);
+    std::string diffAdvanceSpeedsString = "diffSpeeds";
+    GSlider diffAdvanceSpeeds(1, 4, 1);
+    diffAdvanceSpeeds.setHeight(50.0);
+    diffAdvanceSpeeds.setWidth(50.0);
+    diffAdvanceSpeeds.setWindow(display.getWindow());
+    GInteractor* interactorDiffAdvanceSpeeds = &diffAdvanceSpeeds;
+    interactorDiffAdvanceSpeeds->setName(diffAdvanceSpeedsString);
+
+    display.getWindow()->addButton(interactorReverseGenerationBtn);
+    display.getWindow()->addButton(interactorManualOrAutoModeBtn);
+    display.getWindow()->addButton(interactorAdvanceGenerationBtn);
+    display.getWindow()->addButton(interactorDiffAdvanceSpeeds);
+
+    std::string mode = "m";
+    display.setMode(mode);
+    advanceGenerationBtn.setEnabled(true);
+    reverseGenerationBtn.setEnabled(false);
+    manualOrAutoModeBtn.setEnabled(true);
+    diffAdvanceSpeeds.setEnabled(false);
+    // GEventListener advanceGenerationBtnListener = advanceGenerationBtnPressed;
+    // GEventListener manualOrAutoBtnListener = manualOrAutoBtnPressed;
+    // GEventListener reverseGenerationBtnListener = reverseGenerationBtnPressed;
+    // GEventListener sliderSettingChangedListener = sliderSettingChanged;
+    advanceGenerationBtn.setActionListener(advanceGenerationBtnPressed);
+    manualOrAutoModeBtn.setActionListener(manualOrAutoBtnPressed);
+    reverseGenerationBtn.setActionListener(reverseGenerationBtnPressed);
+    diffAdvanceSpeeds.setActionListener(sliderSettingChanged);
+    // diffAdvanceSpeeds.setActionListener(sliderSettingChangedListener);
+
     display.drawBoard();
     display.getWindow()->requestFocus();
     getLine("Hit [enter] to continue....   ");
-    // event handling
-    timerRingListener = timerRing;
-    if (display.getTimerDelay() > 0) {
-        display.getWindow()->setTimerListener(display.getTimerDelay(), timerRingListener);
-    }
-    // mouse left click on window
-    // GEventListener mouseClickListener = mouseClickExitWindow;
-    // display.getWindow()->setClickListener(mouseClickListener);
-    // key pressed on window
-    keyPressedListener = keyPressed;
-    display.getWindow()->setKeyListener(keyPressedListener);
-    getLine("Hit [enter] to continue....   ");
-    getLine("Hit [enter] to continue....   ");
-    getLine("Hit [enter] to continue....   ");
     return 0;
 }
+
