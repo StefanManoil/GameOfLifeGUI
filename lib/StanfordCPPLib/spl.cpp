@@ -11,6 +11,9 @@
  * - bug fix for isMac
  * @version 2018/09/17
  * - initial version
+ * @secondary author for personal use, Stefan Manoil
+ * @version 2022/02/01
+ * - Multiple additions made
  */
 
 #define INTERNAL_INCLUDE 1
@@ -13471,6 +13474,14 @@ GWindow* GInteractor::getWindow() const {
     return nullptr;
 }
 
+GButton* GInteractor::getButton() {
+    return nullptr;
+}
+
+const GSlider* GInteractor::getSlider() const {
+    return nullptr;
+}
+
 double GInteractor::getWidth() const {
     return getWidget()->width();
 }
@@ -13955,6 +13966,11 @@ void GWindow::add(GInteractor* interactor) {
     addToRegion(interactor, REGION_CENTER);
 }
 
+void GWindow::addButton(GInteractor* interactor) {
+    require::nonNull(interactor, "GWindow::add");
+    addToRegion(interactor, REGION_EAST);
+}
+
 void GWindow::add(GInteractor* interactor, double x, double y) {
     require::nonNull(interactor, "GWindow::add");
     interactor->setLocation(x, y);
@@ -14385,8 +14401,12 @@ double GWindow::getWidth() const {
     return _iqmainwindow->geometry().width();
 }
 
-GWindow* GWindow::getWindow() {
+const GWindow* GWindow::getWindow() const {
     return this;
+}
+
+GContainer* GWindow::getContainer() const {
+    return _contentPane;
 }
 
 double GWindow::getX() const {
@@ -14551,8 +14571,12 @@ void GWindow::removeMouseListener() {
     }
 }
 
-void GWindow::removeTimerListener() {
+void GWindow::removeTimerListener(double ms) {
     removeEventListener("timer");
+    _Internal_QMainWindow* innerWindow = _iqmainwindow;
+    GThread::runOnQtGuiThreadAsync([this, innerWindow, ms]() {
+        innerWindow->timerStop(ms);
+    });
 }
 
 void GWindow::removeWindowListener() {
@@ -14785,15 +14809,16 @@ void GWindow::setSize(const GDimension& size) {
 void GWindow::setTimerListener(double ms, GEventListener func) {
     require::nonNegative(ms, "GWindow::setTimerListener", "delay (ms)");
     setEventListener("timer", func);
-    GThread::runOnQtGuiThread([this, ms]() {
-        _iqmainwindow->timerStart(ms);
+    _Internal_QMainWindow* innerWindow = _iqmainwindow;
+    GThread::runOnQtGuiThreadAsync([this, innerWindow, ms]() {
+        innerWindow->timerStart(ms);
     });
 }
 
 void GWindow::setTimerListener(double ms, GEventListenerVoid func) {
     require::nonNegative(ms, "GWindow::setTimerListener", "delay (ms)");
     setEventListener("timer", func);
-    GThread::runOnQtGuiThread([this, ms]() {
+    GThread::runOnQtGuiThreadAsync([this, ms]() {
         _iqmainwindow->timerStart(ms);
     });
 }
@@ -14985,6 +15010,10 @@ void _Internal_QMainWindow::closeEvent(QCloseEvent* event) {
     }
 }
 
+std::unordered_map<double, int>& _Internal_QMainWindow::getTimerDelayMap() {
+    return timerDelayToId;
+}
+
 void _Internal_QMainWindow::handleMenuAction(const std::string& menu, const std::string& item) {
     GEvent actionEvent(
                 /* class  */ ACTION_EVENT,
@@ -15024,11 +15053,16 @@ bool _Internal_QMainWindow::timerExists(int id) {
 int _Internal_QMainWindow::timerStart(double ms) {
     require::nonNegative(ms, "_Internal_QMainWindow::timerStart", "delay (ms)");
     int timerID = startTimer(static_cast<int>(ms));
+    timerDelayToId.emplace(ms, timerID);
+    // ^^ Important note, the int returned from the startTimer method is not the same as the ms value.
+    // Observe method directly below, when a timer is stopped, we want to make sure it is the right one given by the ms value. So we map the ms value to the correct
+    // timerId and when we call timerStop(id), we make sure the id is the proper timerID, not the ms value.
     _timerIDs.add(timerID);
     return timerID;
 }
 
-void _Internal_QMainWindow::timerStop(int id) {
+void _Internal_QMainWindow::timerStop(double ms) {
+    int id = timerDelayToId[ms];
     if (id < 0 && timerExists()) {
         id = _timerIDs.first();
     }
@@ -15036,6 +15070,7 @@ void _Internal_QMainWindow::timerStop(int id) {
     if (timerExists(id)) {
         killTimer(id);
         _timerIDs.remove(id);
+        timerDelayToId.erase(ms);
     }
 }
 
@@ -15091,7 +15126,7 @@ bool GObservable::eventsEnabled() const {
     return _eventsEnabled;
 }
 
-GWindow* GObservable::getWindow() {
+const GWindow* GObservable::getWindow() const {
     return nullptr;
 }
 
@@ -19026,6 +19061,18 @@ std::string GButton::getType() const {
 
 QWidget* GButton::getWidget() const {
     return static_cast<QWidget*>(_iqpushbutton);
+}
+
+GWindow* GButton::getWindow() const {
+    return window;
+}
+
+GButton* GButton::getButton() {
+    return this;
+}
+
+void GButton::setWindow(GWindow *window) {
+    this->window = window;
 }
 
 void GButton::removeActionListener() {
@@ -23838,6 +23885,10 @@ bool GSlider::getSnapToTicks() const {
     return true;
 }
 
+const GSlider* GSlider::getSlider() const {
+    return this;
+}
+
 std::string GSlider::getType() const {
     return "GSlider";
 }
@@ -23848,6 +23899,14 @@ int GSlider::getValue() const {
 
 QWidget* GSlider::getWidget() const {
     return static_cast<QWidget*>(_iqslider);
+}
+
+GWindow* GSlider::getWindow() const {
+    return window;
+}
+
+void GSlider::setWindow(GWindow *window) {
+    this->window = window;
 }
 
 void GSlider::removeActionListener() {
