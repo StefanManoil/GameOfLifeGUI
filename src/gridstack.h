@@ -8,6 +8,7 @@ public:
     GridStack();
     void pushGrid(Type t);
     Type popGrid();
+    int getStackSize() const;
 
 private:
     int capacity;
@@ -16,7 +17,7 @@ private:
 
 template <class Type>
 GridStack<Type>::GridStack() :
-    capacity(10){
+    capacity(10) {
 }
 
 template <class Type>
@@ -33,6 +34,11 @@ Type GridStack<Type>::popGrid() {
     Type t = stack.front();
     stack.pop_front();
     return t; // transfers ownership of memory to caller
+}
+
+template <class Type>
+int GridStack<Type>::getStackSize() const {
+    return stack.size();
 }
 
 
