@@ -567,9 +567,9 @@ public:
      */
     virtual double getWidth() const;
 
-    virtual GWindow* getWindow();
+    virtual const GWindow* getWindow() const;
 
-    virtual _Internal_QMainWindow* getInnerWindow();
+    virtual GContainer* getContainer() const;
 
     /**
      * Returns the x location of the left edge of the window on screen.

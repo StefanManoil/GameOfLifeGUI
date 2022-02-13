@@ -77,7 +77,7 @@ public:
      */
     virtual std::string getType() const = 0;
 
-    virtual GWindow* getWindow();
+    virtual const GWindow* getWindow() const;
 
     /**
      * Sets whether the object is currently allowing itself to fire events.

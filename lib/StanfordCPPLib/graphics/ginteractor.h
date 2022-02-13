@@ -40,6 +40,7 @@
 #include "gtypes.h"
 #undef INTERNAL_INCLUDE
 
+class GButton;
 class GContainer;
 class GDiffGui;
 class GWindow;
@@ -269,6 +270,8 @@ public:
     virtual std::string getType() const = 0;
 
     virtual GWindow* getWindow() const;
+
+    virtual GButton* getButton();
 
     virtual const GSlider* getSlider() const;
 

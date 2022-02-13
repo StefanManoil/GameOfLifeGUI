@@ -89,6 +89,9 @@ public:
     /* @inherit */
     virtual GWindow* getWindow() const Q_DECL_OVERRIDE;
 
+    /* @inherit */
+    virtual GButton* getButton() Q_DECL_OVERRIDE;
+
     virtual void setWindow(GWindow* window);
 
     /**
